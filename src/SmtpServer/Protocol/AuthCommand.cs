@@ -170,6 +170,7 @@ namespace SmtpServer.Protocol
         /// Read a Base64 encoded line.
         /// </summary>
         /// <param name="reader">The pipe to read from.</param>
+        /// <param name="maxMessageSizeOptions"></param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The decoded Base64 string.</returns>
         static async Task<string> ReadBase64EncodedLineAsync(PipeReader reader, IMaxMessageSizeOptions maxMessageSizeOptions, CancellationToken cancellationToken)
