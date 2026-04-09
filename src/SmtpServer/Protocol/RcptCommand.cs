@@ -1,10 +1,12 @@
-﻿using System;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using Microsoft.Extensions.DependencyInjection;
 using SmtpServer.ComponentModel;
 using SmtpServer.IO;
 using SmtpServer.Mail;
 using SmtpServer.Storage;
+using System;
+using System.Drawing;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace SmtpServer.Protocol
 {
@@ -36,23 +38,39 @@ namespace SmtpServer.Protocol
         /// if the current state is to be maintained.</returns>
         internal override async Task<bool> ExecuteAsync(SmtpSessionContext context, CancellationToken cancellationToken)
         {
-            var mailboxFilter = context.ServiceProvider.GetService<IMailboxFilterFactory, IMailboxFilter>(context, MailboxFilter.Default);
+            var mailboxFilters = context.ServiceProvider.GetServices<IMailboxFilter>();
 
-            using var container = new DisposableContainer<IMailboxFilter>(mailboxFilter);
-
-            switch (await container.Instance.CanDeliverToAsync(context, Address, context.Transaction.From, cancellationToken).ConfigureAwait(false))
+            foreach (var mailboxFilter in mailboxFilters)
             {
-                case true:
-                    context.Transaction.To.Add(Address);
-                    await context.Pipe.Output.WriteReplyAsync(SmtpResponse.Ok, cancellationToken).ConfigureAwait(false);
-                    return true;
+                using var container = new DisposableContainer<IMailboxFilter>(mailboxFilter);
+                var filterResult = await container.Instance.CanDeliverToAsync(context, Address, context.Transaction.From, cancellationToken).ConfigureAwait(false);
 
-                case false:
+                if (!filterResult)
+                {
                     await context.Pipe.Output.WriteReplyAsync(SmtpResponse.MailboxUnavailable, cancellationToken).ConfigureAwait(false);
                     return false;
+                }
             }
 
-            throw new NotSupportedException("The Acceptance state is not supported.");
+            //using var container = new DisposableContainer<IMailboxFilter>(mailboxFilter);
+
+            //switch (await container.Instance.CanDeliverToAsync(context, Address, context.Transaction.From, cancellationToken).ConfigureAwait(false))
+            //{
+            //    case true:
+            //        context.Transaction.To.Add(Address);
+            //        await context.Pipe.Output.WriteReplyAsync(SmtpResponse.Ok, cancellationToken).ConfigureAwait(false);
+            //        return true;
+
+            //    case false:
+            //        await context.Pipe.Output.WriteReplyAsync(SmtpResponse.MailboxUnavailable, cancellationToken).ConfigureAwait(false);
+            //        return false;
+            //}
+
+            context.Transaction.To.Add(Address);
+            await context.Pipe.Output.WriteReplyAsync(SmtpResponse.Ok, cancellationToken).ConfigureAwait(false);
+            return true;
+
+            //throw new NotSupportedException("The Acceptance state is not supported.");
         }
 
         /// <summary>

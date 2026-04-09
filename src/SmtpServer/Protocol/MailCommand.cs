@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using SmtpServer.ComponentModel;
 using SmtpServer.IO;
 using SmtpServer.Mail;
@@ -57,21 +59,41 @@ namespace SmtpServer.Protocol
                 return false;
             }
 
-            var mailboxFilter = context.ServiceProvider.GetService<IMailboxFilterFactory, IMailboxFilter>(context, MailboxFilter.Default);
+            var mailboxFilters = context.ServiceProvider.GetServices<IMailboxFilter>();
 
-            using var container = new DisposableContainer<IMailboxFilter>(mailboxFilter);
-
-            switch (await container.Instance.CanAcceptFromAsync(context, Address, size, cancellationToken).ConfigureAwait(false))
+            foreach (var mailboxFilter in mailboxFilters)
             {
-                case true:
-                    context.Transaction.From = Address;
-                    await context.Pipe.Output.WriteReplyAsync(SmtpResponse.Ok, cancellationToken).ConfigureAwait(false);
-                    return true;
+                using var container = new DisposableContainer<IMailboxFilter>(mailboxFilter);
+                var filterResult = await container.Instance.CanAcceptFromAsync(context, Address, size, cancellationToken).ConfigureAwait(false);
 
-                case false:
+                if (!filterResult)
+                {
                     await context.Pipe.Output.WriteReplyAsync(SmtpResponse.MailboxUnavailable, cancellationToken).ConfigureAwait(false);
                     return false;
+                }
             }
+
+            context.Transaction.From = Address;
+            await context.Pipe.Output.WriteReplyAsync(SmtpResponse.Ok, cancellationToken).ConfigureAwait(false);
+            return true;
+
+
+            //var containers = mailboxFilters.Select(_ => new DisposableContainer<IMailboxFilter>(_));
+            //var results = await mailboxFilters.ToAsyncEnumerable().All(f => f.CanAcceptFromAsync(context, Address, size, cancellationToken))).ConfigureAwait(false);
+
+            //using var container = new DisposableContainer<IMailboxFilter>(mailboxFilter);
+
+            //switch (await container.Instance.CanAcceptFromAsync(context, Address, size, cancellationToken).ConfigureAwait(false))
+            //{
+            //    case true:
+            //        context.Transaction.From = Address;
+            //        await context.Pipe.Output.WriteReplyAsync(SmtpResponse.Ok, cancellationToken).ConfigureAwait(false);
+            //        return true;
+
+            //    case false:
+            //        await context.Pipe.Output.WriteReplyAsync(SmtpResponse.MailboxUnavailable, cancellationToken).ConfigureAwait(false);
+            //        return false;
+            //}
 
             throw new SmtpResponseException(SmtpResponse.TransactionFailed);
         }
