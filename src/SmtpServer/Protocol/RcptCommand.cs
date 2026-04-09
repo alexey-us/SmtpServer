@@ -52,25 +52,10 @@ namespace SmtpServer.Protocol
                 }
             }
 
-            //using var container = new DisposableContainer<IMailboxFilter>(mailboxFilter);
-
-            //switch (await container.Instance.CanDeliverToAsync(context, Address, context.Transaction.From, cancellationToken).ConfigureAwait(false))
-            //{
-            //    case true:
-            //        context.Transaction.To.Add(Address);
-            //        await context.Pipe.Output.WriteReplyAsync(SmtpResponse.Ok, cancellationToken).ConfigureAwait(false);
-            //        return true;
-
-            //    case false:
-            //        await context.Pipe.Output.WriteReplyAsync(SmtpResponse.MailboxUnavailable, cancellationToken).ConfigureAwait(false);
-            //        return false;
-            //}
-
             context.Transaction.To.Add(Address);
             await context.Pipe.Output.WriteReplyAsync(SmtpResponse.Ok, cancellationToken).ConfigureAwait(false);
-            return true;
 
-            //throw new NotSupportedException("The Acceptance state is not supported.");
+            return true;
         }
 
         /// <summary>
