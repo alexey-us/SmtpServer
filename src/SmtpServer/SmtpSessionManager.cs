@@ -1,4 +1,6 @@
-﻿using System;
+﻿using SmtpServer.Protocol;
+using SmtpServer.IO;
+using System;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading;
@@ -44,6 +46,11 @@ namespace SmtpServer
                 await handle.Session.RunAsync(linkedTokenSource.Token);
 
                 _smtpServer.OnSessionCompleted(new SessionEventArgs(handle.SessionContext));
+            }
+            catch (SmtpResponseException e)
+            {
+                await handle.SessionContext.Pipe.Output.WriteReplyAsync(e.Response, cancellationToken);
+                //await handle.SessionContext.Pipe.Output.FlushAsync();
             }
             catch (OperationCanceledException)
             {
