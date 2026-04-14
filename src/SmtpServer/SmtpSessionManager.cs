@@ -50,7 +50,7 @@ namespace SmtpServer
             catch (SmtpResponseException e)
             {
                 await handle.SessionContext.Pipe.Output.WriteReplyAsync(e.Response, cancellationToken);
-                //await handle.SessionContext.Pipe.Output.FlushAsync();
+                _smtpServer.OnSessionCancelled(new SessionEventArgs(handle.SessionContext));
             }
             catch (OperationCanceledException)
             {
