@@ -31,9 +31,14 @@ namespace SmtpServer.IO
             {
                 throw new ArgumentNullException(nameof(reader));
             }
-            
+
             var read = await reader.ReadAsync(cancellationToken);
             var head = read.Buffer.Start;
+
+            if (IsInvalidUtf8Sequence(read.Buffer))
+            {
+                throw new Exceptions.PipeInvalidReadFallbackException();
+            }
 
             while (read.IsCanceled == false && read.IsCompleted == false && read.Buffer.IsEmpty == false)
             {
@@ -57,8 +62,60 @@ namespace SmtpServer.IO
                 }
 
                 reader.AdvanceTo(read.Buffer.Start, read.Buffer.End);
-                
+
                 read = await reader.ReadAsync(cancellationToken);
+            }
+        }
+
+        static bool IsInvalidUtf8Sequence(ReadOnlySequence<byte> sequence)
+        {
+            // Настраиваем кодировку на выброс исключения при бинарном мусоре
+            var utf8ThrowOnError = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
+
+            // Получаем декодер, который умеет сохранять состояние между сегментами
+            Decoder decoder = utf8ThrowOnError.GetDecoder();
+
+            // Временный буфер на стеке для приема символов (память в куче не выделяется)
+            Span<char> charBuffer = stackalloc char[256];
+
+            try
+            {
+                foreach (ReadOnlyMemory<byte> segment in sequence)
+                {
+                    ReadOnlySpan<byte> span = segment.Span;
+
+                    int bytesUsed = 0;
+                    int charsUsed = 0;
+                    bool completed = false;
+
+                    // Обрабатываем текущий сегмент байт
+                    while (!completed)
+                    {
+                        decoder.Convert(
+                            bytes: span.Slice(bytesUsed),
+                            chars: charBuffer,
+                            flush: false, // false, так как поток данных еще продолжается
+                            out int bytesConsumed,
+                            out int charsWritten,
+                            out completed);
+
+                        bytesUsed += bytesConsumed;
+                        charsUsed += charsWritten;
+                    }
+                }
+
+                // Финальный сброс (flush) декодера для проверки зависших хвостов в конце последовательности
+                decoder.Convert(
+                    bytes: ReadOnlySpan<byte>.Empty,
+                    chars: charBuffer,
+                    flush: true,
+                    out _, out _, out _);
+
+                return false; // Текст валиден
+            }
+            catch (DecoderFallbackException)
+            {
+                return true; // Обнаружен бинарный мусор
             }
         }
 
@@ -158,9 +215,9 @@ namespace SmtpServer.IO
             {
                 var head = buffer.GetPosition(0);
                 var start = head;
-                
+
                 var segments = new ByteArraySegmentList();
-                
+
                 while (buffer.TryFind(DotBlockStuffing, ref head, out var tail))
                 {
                     var slice = buffer.Slice(start, buffer.GetPosition(3, head));
@@ -173,7 +230,7 @@ namespace SmtpServer.IO
 
                 var remaining = buffer.Slice(start);
                 segments.Append(ref remaining);
-                
+
                 return segments.Build();
             }
         }
