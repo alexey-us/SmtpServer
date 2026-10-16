@@ -7,7 +7,7 @@ namespace SmtpServer.Protocol
     /// <summary>
     /// Rset Command
     /// </summary>
-    public sealed class RsetCommand : SmtpCommand
+    public class RsetCommand : SmtpCommand
     {
         /// <summary>
         /// Smtp Rset Command
@@ -31,9 +31,16 @@ namespace SmtpServer.Protocol
             await BdatCommand.AbortAsync(context).ConfigureAwait(false);
             context.Transaction.Reset();
 
+            await OnExecutedAsync(context, cancellationToken);
+
             await context.Pipe.Output.WriteReplyAsync(SmtpResponse.Ok, cancellationToken).ConfigureAwait(false);
 
             return true;
+        }
+
+        protected virtual Task OnExecutedAsync(ISessionContext sessionContext, CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
         }
     }
 }

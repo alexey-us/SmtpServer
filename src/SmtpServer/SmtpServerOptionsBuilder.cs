@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace SmtpServer
 {
@@ -38,6 +39,79 @@ namespace SmtpServer
             _setters.ForEach(setter => setter(serverOptions));
 
             return serverOptions;
+        }
+
+        /// <summary>
+        /// Called after session created
+        /// </summary>
+        /// <param name="callback"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        public SmtpServerOptionsBuilder OnSessionCreatedAsync(Func<SessionEventArgs, Task> callback)
+        {
+            if (callback == null)
+            {
+                throw new ArgumentNullException(nameof(callback));
+            }
+
+            _setters.Add(options => options.OnSessionCreatedAsync = callback);
+
+            return this;
+        }
+
+        /// <summary>
+        /// Called after session created
+        /// </summary>
+        /// <param name="callback"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        public SmtpServerOptionsBuilder OnSessionCanceledAsync(Func<SessionEventArgs, Task> callback)
+        {
+            if (callback == null)
+            {
+                throw new ArgumentNullException(nameof(callback));
+            }
+
+            _setters.Add(options => options.OnSessionCanceledAsync = callback);
+
+            return this;
+        }
+
+
+        /// <summary>
+        /// Called after session created
+        /// </summary>
+        /// <param name="callback"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        public SmtpServerOptionsBuilder OnSessionCompletedAsync(Func<SessionEventArgs, Task> callback)
+        {
+            if (callback == null)
+            {
+                throw new ArgumentNullException(nameof(callback));
+            }
+
+            _setters.Add(options => options.OnSessionCompletedAsync = callback);
+
+            return this;
+        }
+
+        /// <summary>
+        /// Called after session created
+        /// </summary>
+        /// <param name="callback"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        public SmtpServerOptionsBuilder OnSessionFaultedAsync(Func<SessionFaultedEventArgs, Task> callback)
+        {
+            if (callback == null)
+            {
+                throw new ArgumentNullException(nameof(callback));
+            }
+
+            _setters.Add(options => options.OnSessionFaultedAsync = callback);
+
+            return this;
         }
 
         /// <summary>
@@ -304,6 +378,26 @@ namespace SmtpServer
             /// If not set, a default greeting will be used.
             /// </summary>
             public Func<ISessionContext, string> CustomSmtpGreeting { get; set; }
+
+            /// <summary>
+            /// Async method called after session created
+            /// </summary>
+            public Func<SessionEventArgs, Task> OnSessionCreatedAsync { get; set; }
+
+            /// <summary>
+            /// Async method called after session canceled
+            /// </summary>
+            public Func<SessionEventArgs, Task> OnSessionCanceledAsync { get; set; }
+
+            /// <summary>
+            /// Async method called after session completed
+            /// </summary>
+            public Func<SessionEventArgs, Task> OnSessionCompletedAsync { get; set; }
+
+            /// <summary>
+            /// Async method called after session faulted
+            /// </summary>
+            public Func<SessionFaultedEventArgs, Task> OnSessionFaultedAsync { get; set; }
         }
 
         #endregion

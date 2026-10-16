@@ -1,4 +1,5 @@
 ﻿using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using SmtpServer;
 using SmtpServer.Protocol;
@@ -45,6 +46,11 @@ namespace SampleApp.Examples
             protected override string GetGreeting(ISessionContext context)
             {
                 return "Good morning, Vietnam!";
+            }
+
+            protected override Task<string> GetGreetingAsync(ISessionContext context, CancellationToken cancellationToken = default)
+            {
+                return Task.FromResult(base.GetGreeting(context));
             }
         }
     }

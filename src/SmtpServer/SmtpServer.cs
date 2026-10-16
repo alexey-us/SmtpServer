@@ -67,6 +67,70 @@ namespace SmtpServer
         }
 
         /// <summary>
+        /// Rasises when session created
+        /// </summary>
+        /// <param name="args"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        protected internal virtual async Task OnSessionCreatedAsync(SessionEventArgs args, CancellationToken cancellationToken = default)
+        {
+            var callback = _options.OnSessionCreatedAsync;
+
+            if (callback != null)
+            {
+                await callback(args).ConfigureAwait(false);
+            }
+        }
+
+        /// <summary>
+        /// Rasises when session created
+        /// </summary>
+        /// <param name="args"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        protected internal virtual async Task OnSessionCompletedAsync(SessionEventArgs args, CancellationToken cancellationToken = default)
+        {
+            var callback = _options.OnSessionCompletedAsync;
+
+            if (callback != null)
+            {
+                await callback(args).ConfigureAwait(false);
+            }
+        }
+
+        /// <summary>
+        /// Rasises when session canceled
+        /// </summary>
+        /// <param name="args"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        protected internal virtual async Task OnSessionCanceledAsync(SessionEventArgs args, CancellationToken cancellationToken = default)
+        {
+            var callback = _options.OnSessionCanceledAsync;
+
+            if (callback != null)
+            {
+                await callback(args).ConfigureAwait(false);
+            }
+        }
+
+        /// <summary>
+        /// Rasises when session faulted
+        /// </summary>
+        /// <param name="args"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        protected internal virtual async Task OnSessionFaultedAsync(SessionFaultedEventArgs args, CancellationToken cancellationToken = default)
+        {
+            var callback = _options.OnSessionFaultedAsync;
+
+            if (callback != null)
+            {
+                await callback(args).ConfigureAwait(false);
+            }
+        }
+
+        /// <summary>
         /// Raises the SessionCompleted Event.
         /// </summary>
         /// <param name="args">The event data.</param>
@@ -74,6 +138,8 @@ namespace SmtpServer
         {
             SessionCompleted?.Invoke(this, args);
         }
+
+
 
         /// <summary>
         /// Raises the SessionCompleted Event.
@@ -141,7 +207,7 @@ namespace SmtpServer
             while (cancellationTokenSource.Token.IsCancellationRequested == false)
             {
                 var sessionContext = new SmtpSessionContext(_serviceProvider, _options, endpointDefinition);
-                
+
                 try
                 {
                     // wait for a client connection
@@ -151,7 +217,9 @@ namespace SmtpServer
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "SMTP listener failed while accepting a session on {EndPoint}.", endpointDefinition.Endpoint);
-                    OnSessionFaulted(new SessionFaultedEventArgs(sessionContext, ex));
+                    var faultedArgs = new SessionFaultedEventArgs(sessionContext, ex);
+                    OnSessionFaulted(faultedArgs);
+                    await OnSessionFaultedAsync(faultedArgs).ConfigureAwait(false);
                     continue;
                 }
 

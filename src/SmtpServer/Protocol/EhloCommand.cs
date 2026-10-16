@@ -39,7 +39,7 @@ namespace SmtpServer.Protocol
                 return false;
             }
 
-            var greeting = GetGreeting(context);
+            var greeting = await GetGreetingAsync(context, cancellationToken);
 
             using (var extensions = GetExtensions(context).GetEnumerator())
             {
@@ -75,6 +75,16 @@ namespace SmtpServer.Protocol
         protected virtual string GetGreeting(ISessionContext context)
         {
             return $"{context.ServerOptions.ServerName} Hello {DomainOrAddress}, haven't we met before?";
+        }
+
+        /// <summary>
+        /// Returns the greeting to display to the remote host.
+        /// </summary>
+        /// <param name="context">The session context.</param>
+        /// <returns>The greeting text to display to the remote host.</returns>
+        protected virtual async Task<string> GetGreetingAsync(ISessionContext context, CancellationToken cancellationToken = default)
+        {
+            return await Task.FromResult(GetGreeting(context));
         }
 
         /// <summary>

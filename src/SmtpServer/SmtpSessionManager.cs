@@ -43,7 +43,10 @@ namespace SmtpServer
             try
             {
                 _logger.LogInformation("SMTP session created from {RemoteEndPoint}.", TryGetProperty(handle.SessionContext, Net.EndpointListener.RemoteEndPointKey));
-                _smtpServer.OnSessionCreated(new SessionEventArgs(handle.SessionContext));
+                
+                var args = new SessionEventArgs(handle.SessionContext);
+                _smtpServer.OnSessionCreated(args);
+                await _smtpServer.OnSessionCreatedAsync(args, cancellationToken).ConfigureAwait(false);
 
                 await UpgradeAsync(handle, linkedTokenSource.Token);
 
@@ -52,17 +55,24 @@ namespace SmtpServer
                 await handle.Session.RunAsync(linkedTokenSource.Token);
 
                 _logger.LogInformation("SMTP session completed.");
-                _smtpServer.OnSessionCompleted(new SessionEventArgs(handle.SessionContext));
+                _smtpServer.OnSessionCompleted(args);
+                await _smtpServer.OnSessionCompletedAsync(args, cancellationToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
                 _logger.LogInformation("SMTP session cancelled.");
-                _smtpServer.OnSessionCancelled(new SessionEventArgs(handle.SessionContext));
+
+                var canceledArgs = new SessionEventArgs(handle.SessionContext);
+                _smtpServer.OnSessionCancelled(canceledArgs);
+                await _smtpServer.OnSessionCanceledAsync(canceledArgs, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "SMTP session faulted.");
-                _smtpServer.OnSessionFaulted(new SessionFaultedEventArgs(handle.SessionContext, ex));
+
+                var faultedArgs = new SessionFaultedEventArgs(handle.SessionContext, ex);
+                _smtpServer.OnSessionFaulted(faultedArgs);
+                await _smtpServer.OnSessionFaultedAsync(faultedArgs, cancellationToken).ConfigureAwait(false);
             }
             finally
             {

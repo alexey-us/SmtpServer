@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace SmtpServer
 {
@@ -64,5 +65,25 @@ namespace SmtpServer
         /// If not set, a default greeting will be used (e.g., "220 mail.example.com ESMTP ready").
         /// </summary>
         Func<ISessionContext, string> CustomSmtpGreeting { get; }
+
+        /// <summary>
+        /// Called after session is created
+        /// </summary>
+        Func<SessionEventArgs, Task> OnSessionCreatedAsync { get; }
+
+        /// <summary>
+        /// Called after session is canceled
+        /// </summary>
+        Func<SessionEventArgs, Task> OnSessionCanceledAsync { get; }
+
+        /// <summary>
+        /// Called after session is faulted
+        /// </summary>
+        Func<SessionFaultedEventArgs, Task> OnSessionFaultedAsync { get; }
+
+        /// <summary>
+        /// Called after session is completed
+        /// </summary>
+        Func<SessionEventArgs, Task> OnSessionCompletedAsync { get; set; }
     }
 }

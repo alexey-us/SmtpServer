@@ -6,7 +6,7 @@ namespace SmtpServer.Protocol
     /// <summary>
     /// Smtp Response Exception
     /// </summary>
-    public sealed class SmtpResponseException : Exception
+    public class SmtpResponseException : Exception
     {
         static readonly IReadOnlyDictionary<string, object> Empty = new Dictionary<string, object>();
 
